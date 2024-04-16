@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 type PriceData struct {
@@ -23,11 +25,22 @@ var (
 	lowestPrice  float64
 	mutex        sync.Mutex
 	botToken     = "7105924273:AAHqk07jfhQrHyAbk1ppe_A3BrgPJOVaGas"
+	bot          *tb.Bot
 )
 
 func main() {
 	highestPrice = 0
 	lowestPrice = 9999999999999
+
+	// Telegram botunu başlat
+	b, err := tb.NewBot(tb.Settings{
+		Token:  botToken,
+		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
+	})
+	if err != nil {
+		panic(err)
+	}
+	bot = b
 
 	// En yüksek ve en düşük fiyatları düzenli olarak güncellemek için bir gorutine başlatın
 	symbol := "BTCUSDT"
@@ -68,7 +81,11 @@ func getPrice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(response)
+
+	// Telegram'dan mesaj gönder
+	go sendMessage(string(response), 6897632037)
 }
+
 
 func updatePrice(price float64) {
 	mutex.Lock()
@@ -86,13 +103,7 @@ func updatePrice(price float64) {
 func getCurrentPrice(symbol string) (float64, error) {
 	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/price?symbol=%s", symbol)
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return 0, err
-	}
-
-	resp, err := client.Do(req)
+	resp, err := http.Get(url)
 	if err != nil {
 		return 0, err
 	}
@@ -161,5 +172,13 @@ func handleTelegramUpdates(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
+
+		// Telegram'dan mesaj gönder
+		go sendMessage(update.Message.Text, 6897632037)
 	}
+}
+
+// Telegram'dan mesaj gönderme fonksiyonu
+func sendMessage(message string, chatID int64) {
+	bot.Send(&tb.User{ID: chatID}, message)
 }
