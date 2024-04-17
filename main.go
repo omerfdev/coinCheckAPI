@@ -83,9 +83,10 @@ func getPrice(w http.ResponseWriter, r *http.Request) {
 	w.Write(response)
 
 	// Telegram'dan mesaj gönder
-	go sendMessage(string(response), 6897632037)
+	go sendMessage("Bitcoin En Yüksek Değeri: "+strconv.FormatFloat(highestPrice, 'f', 2, 64)+
+		"\nBitcoin En Düşük Değeri: "+strconv.FormatFloat(lowestPrice, 'f', 2, 64)+
+		"\n"+time.Now().Format("2006-01-02 15:04:05")+" @omerfdevbot", 6897632037)
 }
-
 
 func updatePrice(price float64) {
 	mutex.Lock()
@@ -133,7 +134,11 @@ func updatePricesPeriodically(symbol string) {
 
 		updatePrice(price)
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(5 * time.Second) // Her 5 saniyede bir güncelle
+		// Yeniden mesajı gönder
+		go sendMessage("Bitcoin En Yüksek Değeri: "+strconv.FormatFloat(highestPrice, 'f', 2, 64)+
+			"\nBitcoin En Düşük Değeri: "+strconv.FormatFloat(lowestPrice, 'f', 2, 64)+
+			"\n"+time.Now().Format("2006-01-02 15:04:05")+" @omerfdevbot", 6897632037)
 	}
 }
 
@@ -174,7 +179,9 @@ func handleTelegramUpdates(w http.ResponseWriter, r *http.Request) {
 		w.Write(response)
 
 		// Telegram'dan mesaj gönder
-		go sendMessage(update.Message.Text, 6897632037)
+		go sendMessage("Bitcoin En Yüksek Değeri: "+strconv.FormatFloat(highestPrice, 'f', 2, 64)+
+			"\nBitcoin En Düşük Değeri: "+strconv.FormatFloat(lowestPrice, 'f', 2, 64)+
+			"\n"+time.Now().Format("2006-01-02 15:04:05")+" @omerfdevbot", 6897632037)
 	}
 }
 
